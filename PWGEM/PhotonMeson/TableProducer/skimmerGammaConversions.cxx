@@ -17,17 +17,6 @@
 // *****revision history*****:
 //
 // added recalculation of the conversion point on 08.07.22 by Nikita Philip Tatsch (tatsch@physi.uni-heidelberg.de)
-//
-// **************************
-
-// *****revision history*****:
-//
-// added recalculation of the conversion point on 08.07.22 by Nikita Philip Tatsch (tatsch@physi.uni-heidelberg.de)
-//
-// **************************
-
-// *****revision history*****:
-//
 // adding accesing to ccdb objects for 2022 data taking on 30.11.22 by A. Marin (a.marin@gsi.de)
 //
 // **************************
@@ -60,14 +49,13 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-// using collisionEvSelIt = soa::Join<aod::Collisions, aod::EvSels>::iterator;
 using tracksAndTPCInfo = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::pidTPCEl, aod::pidTPCPi>;
 using tracksAndTPCInfoMC = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::pidTPCEl, aod::pidTPCPi, aod::McTrackLabels>;
 
 struct skimmerGammaConversions {
 
   //configurables for CCDB access
-  Configurable<std::string> path{"ccdb-path", "GLO/GRP/GRP", "path to the ccdb object"};
+  Configurable<std::string> ccdbPath{"ccdb-path", "GLO/GRP/GRP", "path to the ccdb object"};
   Configurable<std::string> grpmagPath{"grpmagPath", "GLO/Config/GRPMagField", "CCDB path of the GRPMagField object"};
   Configurable<std::string> url{"ccdb-url", "http://alice-ccdb.cern.ch", "url of the ccdb repository"};
   Configurable<int64_t> nolaterthan{"ccdb-no-later-than", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(), "latest acceptable timestamp of creation for the object"};
@@ -148,7 +136,7 @@ struct skimmerGammaConversions {
       return;
     }
     auto run3grp_timestamp = bc.timestamp();
-    o2::parameters::GRPObject* grpo = ccdb->getForTimeStamp<o2::parameters::GRPObject>(path.value, bc.timestamp());
+    o2::parameters::GRPObject* grpo = ccdb->getForTimeStamp<o2::parameters::GRPObject>(ccdbPath.value, bc.timestamp());
     o2::parameters::GRPMagField* grpmag = 0x0;
 
     if (grpo) {
@@ -156,7 +144,7 @@ struct skimmerGammaConversions {
     } else {
       grpmag = ccdb->getForTimeStamp<o2::parameters::GRPMagField>(grpmagPath, run3grp_timestamp);
       if (!grpmag) {
-        LOG(fatal) << "Got nullptr from CCDB for path " << grpmagPath << " of object GRPMagField and " << path << " of object GRPObject for timestamp " << run3grp_timestamp;
+        LOG(fatal) << "Got nullptr from CCDB for path " << grpmagPath.value << " of object GRPMagField and " << ccdbPath.value << " of object GRPObject for timestamp " << run3grp_timestamp;
       }
       o2::base::Propagator::initFieldFromGRP(grpmag);
     }
