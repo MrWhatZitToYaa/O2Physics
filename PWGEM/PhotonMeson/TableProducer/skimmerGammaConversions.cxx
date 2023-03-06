@@ -59,6 +59,7 @@ struct skimmerGammaConversions {
   //configurables for CCDB access
   Configurable<std::string> ccdbPath{"ccdb-path", "GLO/GRP/GRP", "path to the ccdb object"};
   Configurable<std::string> grpmagPath{"grpmagPath", "GLO/Config/GRPMagField", "path to the GRPMagField object"};
+  Configurable<std::string> lutPath{"lutPath", "GLO/Param/MatLUT", "Path of the Lut parametrization"};
   Configurable<std::string> ccdbUrl{"ccdb-url", "http://alice-ccdb.cern.ch", "url of the ccdb repository"};
   Configurable<float> kfMassConstrain{"KFParticleMassConstrain", 0.f, "mass constrain for the KFParticle mother particle"};
 
@@ -110,6 +111,7 @@ struct skimmerGammaConversions {
   Service<o2::ccdb::BasicCCDBManager> ccdb;
 
   int runNumber = -1;
+  o2::base::MatLayerCylSet* lut = nullptr;
 
   void init(InitContext const&)
   {
@@ -129,6 +131,8 @@ struct skimmerGammaConversions {
     ccdb->setCaching(true);
     ccdb->setLocalObjectValidityChecking();
     ccdb->setFatalWhenNull(false);
+
+    lut = o2::base::MatLayerCylSet::rectifyPtrFromFile(ccdb->get<o2::base::MatLayerCylSet>(lutPath));
   }
 
   void initCCDB(aod::BCsWithTimestamps::iterator const& bc)
@@ -153,6 +157,8 @@ struct skimmerGammaConversions {
       }
       o2::base::Propagator::initFieldFromGRP(grpmag);
     }
+
+    o2::base::Propagator::Instance()->setMatLUT(lut);
 
     runNumber = bc.runNumber();
   }
@@ -427,14 +433,14 @@ struct skimmerGammaConversions {
                        bz,
                        o2::base::PropagatorImpl<TrackPrecision>::MAX_SIN_PHI,
                        o2::base::PropagatorImpl<TrackPrecision>::MAX_STEP,
-                       o2::base::PropagatorImpl<TrackPrecision>::MatCorrType::USEMatCorrNONE);
+                       o2::base::PropagatorImpl<TrackPrecision>::MatCorrType::USEMatCorrLUT);
 
     prop->propagateToX(trackNegInformationCopy,
                        vertexNegRot.X(),
                        bz,
                        o2::base::PropagatorImpl<TrackPrecision>::MAX_SIN_PHI,
                        o2::base::PropagatorImpl<TrackPrecision>::MAX_STEP,
-                       o2::base::PropagatorImpl<TrackPrecision>::MatCorrType::USEMatCorrNONE);
+                       o2::base::PropagatorImpl<TrackPrecision>::MatCorrType::USEMatCorrLUT);
 
     // TODO: This is still off and needs to be checked...
     recalculatedVertex->recalculatedConversionPoint[2] = (trackPosInformationCopy.getZ() * helixNeg.rC + trackNegInformationCopy.getZ() * helixPos.rC) / (helixPos.rC + helixNeg.rC);
